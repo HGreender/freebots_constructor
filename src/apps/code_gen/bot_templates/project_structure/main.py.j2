@@ -38,7 +38,8 @@ async def send_shutdown_msg_to_admin(error: Exception = None):
             msg = f'❌ Бот завершил работу с ошибкой:\n\n<code>{tb_str[:3900]}</code>'
             await bot.send_message(chat_id=int(config.ADMIN_ID), text=msg, parse_mode='HTML')
         else:
-            await bot.send_message(chat_id=int(config.ADMIN_ID), text='📴 Бот остановлен вручную.')
+            await bot.send_message(chat_id=int(config.ADMIN_ID), text='📴 Бот остановлен - ведутся технические работы.')
+#             await bot.send_message(chat_id=int(config.ADMIN_ID), text='📴 Бот остановлен администратором.')
     except Exception as e:
         logging.error(f'Не удалось отправить сообщение о завершении: {e}')
 
