@@ -1,5 +1,6 @@
 import os
 from collections.abc import Mapping
+import logging
 
 from aiogram import types, filters, Router, F
 from aiogram.fsm.context import FSMContext
@@ -19,6 +20,7 @@ class CatalogState(StatesGroup):
 button_next = types.InlineKeyboardButton(text="Вперед ▶", callback_data="next_product")
 button_back = types.InlineKeyboardButton(text="◀ Назад", callback_data="prev_product")
 button_delete = types.InlineKeyboardButton(text="❌ Удалить", callback_data="delete_product")
+button_close = types.InlineKeyboardButton(text="Закрыть 🚪", callback_data="close_catalog")
 
 
 @router.message(filters.StateFilter(None), filters.Command("catalog"))
@@ -56,8 +58,12 @@ async def get_catalog(
     if jump_buttons_row:
         buttons.append(jump_buttons_row)
 
+    control_row = []
     if is_admin:
         buttons.append([button_delete])
+
+    control_row.append(button_close)  # Всегда показываем "Закрыть"
+    buttons.append(control_row)
 
     kb = types.InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
 
@@ -92,6 +98,21 @@ async def get_catalog(
         sent_message=sent_message,
         is_admin=is_admin,
     )
+
+
+@router.callback_query(filters.StateFilter(CatalogState.show_product), F.data == "close_catalog")
+async def close_catalog(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
+    data = await state.get_data()
+    try:
+        await bot.delete_message(
+            chat_id=data["sent_message"].chat.id,
+            message_id=data["sent_message"].message_id,
+        )
+    except Exception as e:
+        logging.warning(f"Не удалось удалить сообщение каталога: {e}")
+    await state.clear()
+    await callback.message.answer('❎ Каталог закрыт.')
 
 
 @router.callback_query(filters.StateFilter(CatalogState.show_product))
@@ -130,17 +151,6 @@ async def catalog_operation(callback: types.CallbackQuery, state: FSMContext):
             sent_message=data["sent_message"],
             is_admin=data["is_admin"]
         )
-
-
-@router.message(filters.StateFilter(CatalogState.show_product))
-async def exit_catalog(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    await bot.delete_message(
-        chat_id=data["sent_message"].chat.id,
-        message_id=data["sent_message"].message_id,
-    )
-    await state.clear()
-    await message.answer('❎ Каталог закрыт. Теперь вы можете отправлять любые сообщения!')
 
 
 start_keyboard_buttons = [
