@@ -219,6 +219,8 @@ async def specify_product_image(message: types.Message, state: FSMContext):
     if not message.photo:
         return await message.answer('❗ Необходимо отправить изображение!')
 
+    os.makedirs("img", exist_ok=True)
+
     image_path = os.path.join("img", f"{message.photo[-1].file_id}.jpg")
 
     await bot.download(
