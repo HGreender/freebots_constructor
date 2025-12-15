@@ -70,8 +70,8 @@ class CodeGenService:
             middlewares_file = os.path.join(BOT_FILE_TEMPLATES_DIR, 'middlewares.py.j2')
             zipf.write(middlewares_file, 'middlewares.py')
 
-            env_file = os.path.join(BOT_FILE_TEMPLATES_DIR, '.env.example')
-            zipf.write(env_file, '.env.example')
+            env_file = os.path.join(BOT_FILE_TEMPLATES_DIR, '.env')
+            zipf.write(env_file, '.env')
 
             requirements_file = os.path.join(BOT_FILE_TEMPLATES_DIR, 'requirements.txt')
             zipf.write(requirements_file, 'requirements.txt')
