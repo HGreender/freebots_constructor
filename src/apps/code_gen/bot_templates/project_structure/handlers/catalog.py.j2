@@ -21,6 +21,7 @@ button_next = types.InlineKeyboardButton(text="Вперед ▶", callback_data=
 button_back = types.InlineKeyboardButton(text="◀ Назад", callback_data="prev_product")
 button_delete = types.InlineKeyboardButton(text="❌ Удалить", callback_data="delete_product")
 button_close = types.InlineKeyboardButton(text="Закрыть 🚪", callback_data="close_catalog")
+button_clear = types.InlineKeyboardButton(text="Закрыть 🚪", callback_data="clear_and_close")
 
 
 @router.message(filters.StateFilter(None), filters.Command("catalog"))
@@ -38,12 +39,9 @@ async def get_catalog(
     if not products:
         if state:
             await state.clear()
-        if sent_message:
-            await bot.delete_message(
-                chat_id=sent_message.chat.id,
-                message_id=sent_message.message_id,
-            )
-        return await message.answer('☹ Нет доступных товаров')
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[[button_clear]])
+        await message.answer('☹ Нет доступных товаров', reply_markup=keyboard)
+        return
 
     if not is_admin and message.from_user.id == int(config.ADMIN_ID):
         is_admin = True
@@ -100,6 +98,19 @@ async def get_catalog(
     )
 
 
+@router.callback_query(F.data == "clear_and_close")
+async def clear_and_close(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
+    try:
+        await bot.delete_message(
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.message_id,
+        )
+    except Exception as e:
+        logging.warning(f"Не удалось удалить сообщение каталога: {e}")
+    await state.clear()
+
+
 @router.callback_query(filters.StateFilter(CatalogState.show_product), F.data == "close_catalog")
 async def close_catalog(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
@@ -112,7 +123,6 @@ async def close_catalog(callback: types.CallbackQuery, state: FSMContext):
     except Exception as e:
         logging.warning(f"Не удалось удалить сообщение каталога: {e}")
     await state.clear()
-    await callback.message.answer('❎ Каталог закрыт.')
 
 
 @router.callback_query(filters.StateFilter(CatalogState.show_product))
