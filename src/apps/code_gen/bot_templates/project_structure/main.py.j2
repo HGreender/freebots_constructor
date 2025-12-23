@@ -28,13 +28,11 @@ async def send_start_msg_to_admin():
 
 async def send_shutdown_msg_to_admin(error: Exception = None):
     if not config.ADMIN_ID:
-        return  # Некуда отправлять
+        return
 
     try:
         if error:
-            # Форматируем traceback для отправки
             tb_str = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
-            # Telegram имеет лимит ~4096 символов, поэтому обрежем при необходимости
             msg = f'❌ Бот завершил работу с ошибкой:\n\n<code>{tb_str[:3900]}</code>'
             await bot.send_message(chat_id=int(config.ADMIN_ID), text=msg, parse_mode='HTML')
         else:
@@ -45,33 +43,27 @@ async def send_shutdown_msg_to_admin(error: Exception = None):
 
 
 async def main():
-    # Создание таблиц
     for func in create_tables_funcs:
         await func(db_connector)
 
-    # Запуск polling'а
     try:
         await send_start_msg_to_admin()
         await dp.start_polling(bot)
-    except Exception as e:
+    except Exception as err:
         logging.exception("Критическая ошибка при работе бота:")
-        await send_shutdown_msg_to_admin(e)
-        raise  # Опционально: пробросить ошибку выше
+        await send_shutdown_msg_to_admin(err)
+        raise
     finally:
-        # Дополнительная очистка (если нужно)
         await bot.session.close()
 
 
 if __name__ == '__main__':
-    # Подключение middleware и роутеров
     for router in routers:
         router.message.middleware(UserMiddleware())
     dp.include_routers(*routers)
 
-    # Настройка логирования
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
-    # Запуск основного цикла
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
